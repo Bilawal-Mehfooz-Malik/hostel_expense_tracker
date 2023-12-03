@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -9,7 +8,7 @@ import 'package:hostel_expense_tracker/widgets/expenses_data/expense_list.dart';
 import 'package:hostel_expense_tracker/widgets/expenses_data/new_expense.dart';
 
 class ExpenseScreen extends StatefulWidget {
-  const ExpenseScreen({super.key});
+  const ExpenseScreen({Key? key}) : super(key: key);
 
   @override
   State<ExpenseScreen> createState() => _ExpenseScreenState();
@@ -31,7 +30,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   // Gets Data from the database
   void _loadItems() async {
     final url = Uri.https(
-      'hostel-expense-tracker-default-rtdb.firebaseio.com',
+      'hostel-expense-tracker-dd232-default-rtdb.firebaseio.com',
       'expense-list.json',
     );
     try {
@@ -40,9 +39,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         setState(() {
           _error = 'Failed to fetch data. Please try again later';
         });
+        return;
       }
 
-      if (response.body == 'null'||response.body=='{}') {
+      if (response.body == 'null' || response.body == '{}') {
         setState(() {
           _isLoading = false;
         });
@@ -59,6 +59,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         );
         loadedItems.add(
           Expense(
+            id: item.key, // Retrieve ID and associate it with the expense
             title: item.value['title'],
             amount: item.value['amount'],
             category: category,
@@ -81,7 +82,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   // Shows a ModalBottomSheet when we press the add button in AppBar
   void _showAddExpenseOverlay() async {
     final newItem = await showModalBottomSheet(
-      useSafeArea: true, //for basice device settings like camera
+      useSafeArea: true, //for basic device settings like camera
       isScrollControlled: true,
       context: context,
       builder: (ctx) {
@@ -111,7 +112,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       SnackBar(
         content: const Text('Expense Deleted'),
         duration: const Duration(seconds: 3),
-        action: SnackBarAction(
+        action: SnackBarAction( 
           label: 'Undo',
           onPressed: () async {
             setState(() {
@@ -122,28 +123,28 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       ),
     );
 
-    // wait for 3 seconds and then delete the item from the backend
-    await Future.delayed(const Duration(seconds: 3));
+    final url = Uri.https(
+      'hostel-expense-tracker-dd232-default-rtdb.firebaseio.com',
+      'expense-list/${expense.id}.json',
+    );
 
-    // if the expense is still removed (i.e., user did not press Undo), then delete from backend
-    if (!_registeredExpenses.contains(expense)) {
-      final url = Uri.https(
-        'hostel-expense-tracker-default-rtdb.firebaseio.com',
-        'expense-list/${expense.id}.json',
-      );
+    try {
       final response = await http.delete(url);
 
       if (response.statusCode >= 400) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Deletion failed!'),
-            ),
-          );
-          setState(() {
-            _registeredExpenses.insert(expenseIndex, expense);
-          });
-        }
+        throw Exception('HTTP ${response.statusCode}: Deletion failed');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Deletion failed!'),
+          ),
+        );
+
+        setState(() {
+          _registeredExpenses.insert(expenseIndex, expense);
+        });
       }
     }
   }

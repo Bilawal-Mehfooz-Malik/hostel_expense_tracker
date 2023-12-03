@@ -92,7 +92,7 @@ class _NewExpenseState extends State<NewExpense> {
     });
     // Sending Post Request to DataBase for saving expense item
     final url = Uri.https(
-      'hostel-expense-tracker-default-rtdb.firebaseio.com',
+      'hostel-expense-tracker-dd232-default-rtdb.firebaseio.com',
       'expense-list.json',
     );
     final response = await http.post(url,
